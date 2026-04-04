@@ -25,6 +25,9 @@ namespace pylorak.TinyWall
             Utils.SetRightToLeft(this);
             this.IconList.ImageSize = IconSize;
             this.Icon = Resources.Icons.firewall;
+
+            // ULEPSZENIE #2: Zastosuj Dark Mode jeśli Windows jest w trybie ciemnym
+            Utils.ApplyDarkModeIfEnabled(this);
             this.Controller = ctrl;
 
             const string TEMP_ICON_KEY = "generic-executable";
@@ -516,6 +519,82 @@ namespace pylorak.TinyWall
             {
                 btnRefresh_Click(btnRefresh, EventArgs.Empty);
                 e.Handled = true;
+            }
+
+            // Ctrl+S = eksport do CSV
+            if (e.Control && e.KeyCode == Keys.S)
+            {
+                ExportConnectionsToCsv();
+                e.Handled = true;
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // ULEPSZENIE #1: Eksport aktywnych połączeń do pliku CSV
+        // Skrót klawiszowy: Ctrl+S
+        // Dostępny też przez menu kontekstowe (prawy klik na liście)
+        // ---------------------------------------------------------------
+        internal void ExportConnectionsToCsv()
+        {
+            using var sfd = new SaveFileDialog
+            {
+                Title = "Eksportuj połączenia do CSV",
+                Filter = "Pliki CSV (*.csv)|*.csv|Wszystkie pliki (*.*)|*.*",
+                FileName = $"TinyWall_connections_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv",
+                DefaultExt = "csv"
+            };
+
+            if (sfd.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+
+                // Nagłówek CSV
+                sb.AppendLine("Czas eksportu;Aplikacja;PID;Protokół;Lokalny adres;Port lokalny;Zdalny adres;Port zdalny;Status");
+
+                string exportTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+
+                // Zbieramy dane z obu list (aktywne i zablokowane)
+                foreach (ListViewItem li in list.Items)
+                {
+                    // Escapujemy pola zawierające średnik lub cudzysłów
+                    string EscapeCsv(string val) =>
+                        val.Contains(';') || val.Contains('"') || val.Contains('\n')
+                            ? $"\"{val.Replace("\"", "\"\"")}\"" : val;
+
+                    string app      = EscapeCsv(li.SubItems.Count > 0 ? li.SubItems[0].Text : "");
+                    string pid      = EscapeCsv(li.SubItems.Count > 1 ? li.SubItems[1].Text : "");
+                    string proto    = EscapeCsv(li.SubItems.Count > 2 ? li.SubItems[2].Text : "");
+                    string localIp  = EscapeCsv(li.SubItems.Count > 3 ? li.SubItems[3].Text : "");
+                    string localPt  = EscapeCsv(li.SubItems.Count > 4 ? li.SubItems[4].Text : "");
+                    string remoteIp = EscapeCsv(li.SubItems.Count > 5 ? li.SubItems[5].Text : "");
+                    string remotePt = EscapeCsv(li.SubItems.Count > 6 ? li.SubItems[6].Text : "");
+                    string status   = EscapeCsv(li.SubItems.Count > 7 ? li.SubItems[7].Text : "");
+
+                    sb.AppendLine($"{exportTime};{app};{pid};{proto};{localIp};{localPt};{remoteIp};{remotePt};{status}");
+                }
+
+                System.IO.File.WriteAllText(sfd.FileName, sb.ToString(), System.Text.Encoding.UTF8);
+
+                MessageBox.Show(
+                    this,
+                    $"Eksport zakończony pomyślnie!\n\nZapisano {list.Items.Count} połączeń do:\n{sfd.FileName}\n\nMożesz otworzyć plik w Excelu lub Notatniku.",
+                    "TinyWall - Eksport CSV",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    this,
+                    $"Błąd podczas eksportu:\n{ex.Message}",
+                    "TinyWall - Błąd eksportu",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
         }
     }

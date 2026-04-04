@@ -1,0 +1,93 @@
+name: Build TinyWall
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:   # pozwala uruchomić ręcznie z GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      # 1. Pobierz kod źródłowy
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      # 2. Zainstaluj WiX Toolset v3 (potrzebny do budowy instalatora .msi)
+      - name: Instalacja WiX Toolset v3
+        run: |
+          choco install wixtoolset --version=3.11.2 -y
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
+        shell: pwsh
+
+      # 3. Przywróć paczki NuGet
+      - name: Przywróć NuGet packages
+        run: nuget restore TinyWall.sln
+        shell: pwsh
+
+      # 4. Zbuduj główny projekt TinyWall (Release)
+      - name: Build TinyWall (Release)
+        run: |
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" `
+            TinyWall\TinyWall.csproj `
+            /p:Configuration=Release `
+            /p:Platform=AnyCPU `
+            /m
+        shell: pwsh
+
+      # 5. Skopiuj pliki do folderu instalatora
+      - name: Przygotuj pliki instalatora
+        run: |
+          $src = "TinyWall\bin\Release\"
+          $dst = "MsiSetup\Sources\ProgramFiles\TinyWall\"
+          if (!(Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force }
+          Copy-Item "$src\*" $dst -Recurse -Force
+          Write-Host "Skopiowano pliki do folderu MSI"
+        shell: pwsh
+
+      # 6. Zbuduj instalator MSI
+      - name: Build instalatora MSI
+        run: |
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" `
+            MsiSetup\MsiSetup.wixproj `
+            /p:Configuration=Release `
+            /p:Platform=x86 `
+            /m
+        shell: pwsh
+
+      # 7. Znajdź zbudowany MSI
+      - name: Znajdź plik MSI
+        id: find_msi
+        run: |
+          $msi = Get-ChildItem -Path "MsiSetup\bin\Release\" -Filter "*.msi" | Select-Object -First 1
+          if ($msi) {
+            echo "MSI_PATH=$($msi.FullName)" >> $env:GITHUB_OUTPUT
+            echo "MSI_NAME=$($msi.Name)" >> $env:GITHUB_OUTPUT
+            Write-Host "Znaleziono: $($msi.FullName)"
+          } else {
+            Write-Error "Nie znaleziono pliku MSI!"
+            exit 1
+          }
+        shell: pwsh
+
+      # 8. Wgraj MSI jako artifact do pobrania
+      - name: Upload instalatora MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: TinyWall-Installer
+          path: ${{ steps.find_msi.outputs.MSI_PATH }}
+          retention-days: 30
+
+      # 9. Pokaż informacje o buildzie
+      - name: Podsumowanie buildu
+        run: |
+          Write-Host "=========================================="
+          Write-Host "  TinyWall - Build zakończony sukcesem!"
+          Write-Host "=========================================="
+          Write-Host "  Plik: ${{ steps.find_msi.outputs.MSI_NAME }}"
+          Write-Host "  Pobierz z zakładki: Actions > Artifacts"
+          Write-Host "=========================================="
+        shell: pwsh

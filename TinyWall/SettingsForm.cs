@@ -44,6 +44,10 @@ namespace pylorak.TinyWall
             Utils.SetRightToLeft(this);
             this.IconList.ImageSize = IconSize;
             this.Icon = Resources.Icons.firewall;
+
+            // ULEPSZENIE #2: Zastosuj Dark Mode jeśli Windows jest w trybie ciemnym
+            Utils.ApplyDarkModeIfEnabled(this);
+
             this.btnOK.Image = GlobalInstances.ApplyBtnIcon;
             this.btnCancel.Image = GlobalInstances.CancelBtnIcon;
             this.btnAppAutoDetect.Image = GlobalInstances.UninstallBtnIcon;

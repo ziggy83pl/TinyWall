@@ -712,5 +712,150 @@ namespace pylorak.TinyWall
 
             return (a != null) && a.Equals(b, StringComparison.InvariantCultureIgnoreCase);
         }
+
+        // ---------------------------------------------------------------
+        // ULEPSZENIE #2: Dark Mode
+        // Wykrywa czy Windows jest w trybie ciemnym i stosuje kolory
+        // do dowolnego okna WinForms.
+        // Użycie: Utils.ApplyDarkModeIfEnabled(this);  w konstruktorze formy
+        // ---------------------------------------------------------------
+
+        /// <summary>
+        /// Sprawdza czy Windows jest ustawiony na tryb ciemny (Dark Mode).
+        /// Działa na Windows 10 1809+ i Windows 11.
+        /// </summary>
+        public static bool IsWindowsDarkModeEnabled()
+        {
+            try
+            {
+                const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(keyPath);
+                if (key?.GetValue("AppsUseLightTheme") is int value)
+                    return value == 0;  // 0 = ciemny, 1 = jasny
+            }
+            catch { /* brak klucza = stary Windows, domyślnie jasny */ }
+
+            return false;
+        }
+
+        // Kolory dla trybu ciemnego
+        public static readonly Color DarkBackground  = Color.FromArgb(32, 32, 32);
+        public static readonly Color DarkSurface     = Color.FromArgb(45, 45, 45);
+        public static readonly Color DarkBorder      = Color.FromArgb(70, 70, 70);
+        public static readonly Color DarkForeground  = Color.FromArgb(220, 220, 220);
+        public static readonly Color DarkAccent      = Color.FromArgb(0, 120, 215);   // Windows blue
+        public static readonly Color DarkSelected    = Color.FromArgb(51, 51, 76);
+
+        /// <summary>
+        /// Stosuje Dark Mode do okna i wszystkich kontrolek rekurencyjnie.
+        /// Wywołaj w konstruktorze formy: Utils.ApplyDarkModeIfEnabled(this);
+        /// </summary>
+        public static void ApplyDarkModeIfEnabled(Form form)
+        {
+            if (!IsWindowsDarkModeEnabled())
+                return;
+
+            ApplyDarkModeToControl(form);
+        }
+
+        private static void ApplyDarkModeToControl(Control ctrl)
+        {
+            ctrl.BackColor = DarkBackground;
+            ctrl.ForeColor = DarkForeground;
+
+            switch (ctrl)
+            {
+                case ListView lv:
+                    lv.BackColor = DarkSurface;
+                    lv.ForeColor = DarkForeground;
+                    break;
+
+                case Button btn:
+                    btn.BackColor = DarkSurface;
+                    btn.ForeColor = DarkForeground;
+                    btn.FlatStyle = FlatStyle.Flat;
+                    btn.FlatAppearance.BorderColor = DarkBorder;
+                    btn.FlatAppearance.MouseOverBackColor = DarkSelected;
+                    break;
+
+                case CheckBox cb:
+                    cb.BackColor = DarkBackground;
+                    cb.ForeColor = DarkForeground;
+                    break;
+
+                case Label lbl:
+                    lbl.BackColor = DarkBackground;
+                    lbl.ForeColor = DarkForeground;
+                    break;
+
+                case TextBox tb:
+                    tb.BackColor = DarkSurface;
+                    tb.ForeColor = DarkForeground;
+                    tb.BorderStyle = BorderStyle.FixedSingle;
+                    break;
+
+                case ComboBox cb:
+                    cb.BackColor = DarkSurface;
+                    cb.ForeColor = DarkForeground;
+                    break;
+
+                case Panel pnl:
+                    pnl.BackColor = DarkBackground;
+                    break;
+
+                case GroupBox gb:
+                    gb.ForeColor = DarkForeground;
+                    gb.BackColor = DarkBackground;
+                    break;
+
+                case MenuStrip ms:
+                    ms.BackColor = DarkSurface;
+                    ms.ForeColor = DarkForeground;
+                    foreach (ToolStripMenuItem item in ms.Items)
+                        ApplyDarkModeToMenuItems(item);
+                    break;
+
+                case ContextMenuStrip cms:
+                    cms.BackColor = DarkSurface;
+                    cms.ForeColor = DarkForeground;
+                    break;
+
+                case ToolStrip ts:
+                    ts.BackColor = DarkSurface;
+                    ts.ForeColor = DarkForeground;
+                    break;
+
+                case StatusStrip ss:
+                    ss.BackColor = DarkSurface;
+                    ss.ForeColor = DarkForeground;
+                    break;
+
+                case TabControl tc:
+                    tc.BackColor = DarkBackground;
+                    foreach (TabPage tp in tc.TabPages)
+                    {
+                        tp.BackColor = DarkBackground;
+                        tp.ForeColor = DarkForeground;
+                    }
+                    break;
+            }
+
+            // Rekurencyjnie stosuj do dzieci
+            foreach (Control child in ctrl.Controls)
+                ApplyDarkModeToControl(child);
+        }
+
+        private static void ApplyDarkModeToMenuItems(ToolStripMenuItem item)
+        {
+            item.BackColor = DarkSurface;
+            item.ForeColor = DarkForeground;
+            foreach (ToolStripItem sub in item.DropDownItems)
+            {
+                sub.BackColor = DarkSurface;
+                sub.ForeColor = DarkForeground;
+                if (sub is ToolStripMenuItem subMenu)
+                    ApplyDarkModeToMenuItems(subMenu);
+            }
+        }
     }
 }
