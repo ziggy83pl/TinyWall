@@ -600,6 +600,30 @@ namespace pylorak.TinyWall
 
         private void SetMode(FirewallMode mode)
         {
+            // ---------------------------------------------------------------
+            // NAPRAWA BEZPIECZEŃSTWA #4: Audit log zdarzeń krytycznych
+            // Każda zmiana trybu firewalla jest teraz logowana z timestampem.
+            // Pozwala wykryć np. nieautoryzowane wyłączenie firewalla.
+            // ---------------------------------------------------------------
+            string previousMode = FirewallState.Mode.ToString();
+            string newMode = mode.ToString();
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string username = Environment.UserName;
+
+            Utils.Log(
+                $"[AUDIT] {timestamp} | Użytkownik '{username}' zmienił tryb firewalla: {previousMode} → {newMode}",
+                Utils.LOG_ID_GUI
+            );
+
+            // Dodatkowe ostrzeżenie gdy wyłączany jest firewall
+            if (mode == FirewallMode.Disabled)
+            {
+                Utils.Log(
+                    $"[AUDIT][WARNING] {timestamp} | FIREWALL WYŁĄCZONY przez '{username}' — komputer jest niezabezpieczony!",
+                    Utils.LOG_ID_GUI
+                );
+            }
+
             MessageType resp = GlobalInstances.Controller.SwitchFirewallMode(mode);
             string usermsg = mode switch
             {

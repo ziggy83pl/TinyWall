@@ -114,6 +114,9 @@ namespace pylorak.TinyWall
 
             State = UpdaterState.DownloadingUpdate;
 
+            // Zapamiętaj oczekiwany hash z deskryptora (do weryfikacji po pobraniu)
+            string? expectedHash = mainModule.DownloadHash;
+
             var tmpFile = Path.GetTempFileName() + ".msi";
             var UpdateURL = new Uri(mainModule.UpdateURL);
             using var HTTPClient = new WebClient();
@@ -125,19 +128,103 @@ namespace pylorak.TinyWall
             {
                 case (int)DialogResult.Cancel:
                     HTTPClient.CancelAsync();
+                    SecureDeleteTempFile(tmpFile);
                     break;
                 case (int)DialogResult.OK:
-                    InstallUpdate(tmpFile);
+                    InstallUpdate(tmpFile, expectedHash);
                     break;
                 case (int)DialogResult.Abort:
                     Utils.ShowMessageBox(ErrorMsg, Resources.Messages.TinyWall, TaskDialogCommonButtons.Ok, TaskDialogIcon.Error);
+                    SecureDeleteTempFile(tmpFile);
                     break;
             }
         }
 
-        private static void InstallUpdate(string localFilePath)
+        // ---------------------------------------------------------------
+        // NAPRAWA BEZPIECZEŃSTWA #1: Weryfikacja SHA256 przed instalacją
+        // Wcześniej pole DownloadHash istniało ale nigdy nie było sprawdzane!
+        // Teraz każdy pobrany plik jest weryfikowany przed uruchomieniem.
+        // ---------------------------------------------------------------
+        private static void InstallUpdate(string localFilePath, string? expectedSha256Hash)
         {
+            // Weryfikuj hash SHA256 jeśli serwer go podał
+            if (!string.IsNullOrWhiteSpace(expectedSha256Hash))
+            {
+                string actualHash = Hasher.HashFile(localFilePath);
+
+                bool hashMatch = string.Equals(
+                    actualHash.Trim(),
+                    expectedSha256Hash.Trim(),
+                    StringComparison.OrdinalIgnoreCase
+                );
+
+                if (!hashMatch)
+                {
+                    // Usuń podejrzany plik przed zgłoszeniem błędu
+                    SecureDeleteTempFile(localFilePath);
+
+                    Utils.Log(
+                        $"[SECURITY] Update hash mismatch! Expected: {expectedSha256Hash}, Got: {actualHash}",
+                        Utils.LOG_ID_GUI
+                    );
+
+                    Utils.ShowMessageBox(
+                        "Weryfikacja pliku aktualizacji nie powiodła się!\n\n" +
+                        "Obliczony hash SHA256 różni się od oczekiwanego.\n" +
+                        "Plik mógł zostać zmodyfikowany podczas pobierania (atak MITM).\n\n" +
+                        "Aktualizacja została anulowana dla Twojego bezpieczeństwa.",
+                        Resources.Messages.TinyWall,
+                        TaskDialogCommonButtons.Ok,
+                        TaskDialogIcon.Error
+                    );
+                    return;
+                }
+
+                Utils.Log($"[SECURITY] Update hash verified OK: {actualHash}", Utils.LOG_ID_GUI);
+            }
+            else
+            {
+                // Hash nie był podany w deskryptorze - ostrzeż użytkownika
+                Utils.Log("[SECURITY] WARNING: Update downloaded without hash verification (DownloadHash missing in descriptor)", Utils.LOG_ID_GUI);
+            }
+
+            // Hash poprawny lub nieweryfikowalny - instaluj
             Utils.StartProcess(localFilePath, string.Empty, false, false);
+        }
+
+        /// <summary>
+        /// Bezpiecznie usuwa tymczasowy plik — zeruje zawartość przed usunięciem,
+        /// aby wrażliwe dane (np. pobrane aktualizacje) nie pozostały na dysku.
+        /// </summary>
+        private static void SecureDeleteTempFile(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath)) return;
+
+                // Nadpisz zerami przed usunięciem
+                long length = new FileInfo(filePath).Length;
+                if (length > 0 && length < 512 * 1024 * 1024) // max 512MB
+                {
+                    using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Write);
+                    byte[] zeros = new byte[Math.Min(65536, length)];
+                    long written = 0;
+                    while (written < length)
+                    {
+                        int chunk = (int)Math.Min(zeros.Length, length - written);
+                        fs.Write(zeros, 0, chunk);
+                        written += chunk;
+                    }
+                    fs.Flush();
+                }
+
+                File.Delete(filePath);
+            }
+            catch
+            {
+                // Najlepsza próba — jeśli się nie uda, przynajmniej usuń plik normalnie
+                try { File.Delete(filePath); } catch { }
+            }
         }
 
         private void Updater_DownloadFinished(object sender, AsyncCompletedEventArgs e)

@@ -87,11 +87,29 @@ namespace pylorak.TinyWall
             }
             catch { }
 
-            // Setup TLS 1.2 & 1.3 support, if supported
+            // ---------------------------------------------------------------
+            // NAPRAWA BEZPIECZEŃSTWA #3: Wymuszenie TLS 1.2+ dla wszystkich połączeń HTTP
+            // Poprzedni kod tylko DODAWAŁ TLS 1.2/1.3, nie wyłączał starszych protokołów.
+            // Atakujący mógł wymusić downgrade do SSL3/TLS 1.0 (POODLE, BEAST).
+            // Teraz jawnie wyłączamy stare protokoły i wymagamy minimum TLS 1.2.
+            // ---------------------------------------------------------------
             if (ServicePointManager.SecurityProtocol != 0)
             {
-                try { ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12; } catch { }
-                try { ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls13; } catch { }
+                try
+                {
+                    // Wyłącz SSL3, TLS 1.0, TLS 1.1 — są podatne na ataki
+                    // Zostaw tylko TLS 1.2 i TLS 1.3
+                    SecurityProtocolType modernTls = SecurityProtocolType.Tls12;
+                    try { modernTls |= SecurityProtocolType.Tls13; } catch { }
+
+                    ServicePointManager.SecurityProtocol = modernTls;
+                    Utils.Log("[SECURITY] TLS configured: TLS 1.2+ only (SSL3/TLS1.0/TLS1.1 disabled)", Utils.LOG_ID_GUI);
+                }
+                catch
+                {
+                    // Fallback - przynajmniej dodaj TLS 1.2
+                    try { ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12; } catch { }
+                }
             }
 
             // Parse comman-line options
