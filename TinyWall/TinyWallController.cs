@@ -45,7 +45,11 @@ namespace pylorak.TinyWall
             nameof(mnuAllowLocalSubnet),
             nameof(mnuEnableHostsBlocklist),
             nameof(mnuTrafficRate),
-            nameof(mnuModeLearn)
+            nameof(mnuModeLearn),
+            nameof(mnuLogViewer),
+            nameof(mnuTrafficStats),
+            nameof(mnuSecurityProfile),
+            nameof(toolStripMenuItemExtra)
         )]
         private void InitializeComponent()
         {
@@ -75,6 +79,10 @@ namespace pylorak.TinyWall
             this.toolStripMenuItem5 = new System.Windows.Forms.ToolStripSeparator();
             this.mnuQuit = new System.Windows.Forms.ToolStripMenuItem();
             this.ofd = new System.Windows.Forms.OpenFileDialog();
+            this.mnuLogViewer = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuTrafficStats = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuSecurityProfile = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItemExtra = new System.Windows.Forms.ToolStripSeparator();
             this.TrayMenu.SuspendLayout();
             // 
             // Tray
@@ -103,6 +111,10 @@ namespace pylorak.TinyWall
             this.mnuWhitelistByProcess,
             this.mnuWhitelistByWindow,
             this.toolStripMenuItem5,
+            this.mnuLogViewer,
+            this.mnuTrafficStats,
+            this.mnuSecurityProfile,
+            this.toolStripMenuItemExtra,
             this.mnuQuit});
             this.TrayMenu.Name = "TrayMenu";
             resources.ApplyResources(this.TrayMenu, "TrayMenu");
@@ -248,6 +260,28 @@ namespace pylorak.TinyWall
             // ofd
             // 
             resources.ApplyResources(this.ofd, "ofd");
+
+            // mnuLogViewer
+            this.mnuLogViewer.Name = "mnuLogViewer";
+            this.mnuLogViewer.Text = "📋 Przeglądarka logów";
+            this.mnuLogViewer.Image = global::pylorak.TinyWall.Resources.Icons.connections;
+            this.mnuLogViewer.Click += new System.EventHandler(this.mnuLogViewer_Click);
+
+            // mnuTrafficStats
+            this.mnuTrafficStats.Name = "mnuTrafficStats";
+            this.mnuTrafficStats.Text = "📊 Statystyki ruchu";
+            this.mnuTrafficStats.Image = global::pylorak.TinyWall.Resources.Icons.info;
+            this.mnuTrafficStats.Click += new System.EventHandler(this.mnuTrafficStats_Click);
+
+            // mnuSecurityProfile
+            this.mnuSecurityProfile.Name = "mnuSecurityProfile";
+            this.mnuSecurityProfile.Text = "🔒 Profil bezpieczeństwa";
+            this.mnuSecurityProfile.Image = global::pylorak.TinyWall.Resources.Icons.firewall;
+            this.mnuSecurityProfile.Click += new System.EventHandler(this.mnuSecurityProfile_Click);
+
+            // toolStripMenuItemExtra (separator przed Quit)
+            this.toolStripMenuItemExtra.Name = "toolStripMenuItemExtra";
+
             this.TrayMenu.ResumeLayout(false);
         }
 
@@ -265,6 +299,11 @@ namespace pylorak.TinyWall
         private System.Windows.Forms.ToolStripMenuItem mnuWhitelistByExecutable;
         private System.Windows.Forms.ToolStripMenuItem mnuWhitelistByProcess;
         private System.Windows.Forms.ToolStripMenuItem mnuWhitelistByWindow;
+        // Nowe pozycje menu — dodane jako ulepszenia
+        private System.Windows.Forms.ToolStripMenuItem mnuLogViewer;
+        private System.Windows.Forms.ToolStripMenuItem mnuTrafficStats;
+        private System.Windows.Forms.ToolStripMenuItem mnuSecurityProfile;
+        private System.Windows.Forms.ToolStripSeparator toolStripMenuItemExtra;
         private System.Windows.Forms.ToolStripMenuItem mnuLock;
         private System.Windows.Forms.ToolStripMenuItem mnuElevate;
         private System.Windows.Forms.ToolStripMenuItem mnuConnections;
@@ -1256,6 +1295,61 @@ namespace pylorak.TinyWall
             finally
             {
                 ActiveForms.Remove(cf);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // NOWE HANDLERY: Log Viewer, Statystyki ruchu, Profile bezpieczeństwa
+        // ---------------------------------------------------------------
+
+        private void mnuLogViewer_Click(object sender, EventArgs e)
+        {
+            if (FlashIfOpen(typeof(LogViewerForm)))
+                return;
+
+            using var lv = new LogViewerForm();
+            try
+            {
+                ActiveForms.Add(lv);
+                lv.ShowDialog();
+            }
+            finally
+            {
+                ActiveForms.Remove(lv);
+            }
+        }
+
+        private void mnuTrafficStats_Click(object sender, EventArgs e)
+        {
+            if (FlashIfOpen(typeof(TrafficStatsForm)))
+                return;
+
+            using var ts = new TrafficStatsForm();
+            try
+            {
+                ActiveForms.Add(ts);
+                ts.ShowDialog();
+            }
+            finally
+            {
+                ActiveForms.Remove(ts);
+            }
+        }
+
+        private void mnuSecurityProfile_Click(object sender, EventArgs e)
+        {
+            if (FlashIfOpen(typeof(SecurityProfileForm)))
+                return;
+
+            using var spf = new SecurityProfileForm(this);
+            try
+            {
+                ActiveForms.Add(spf);
+                spf.ShowDialog();
+            }
+            finally
+            {
+                ActiveForms.Remove(spf);
             }
         }
 

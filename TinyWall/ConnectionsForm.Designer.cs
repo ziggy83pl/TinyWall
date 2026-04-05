@@ -150,7 +150,9 @@
             this.mnuUnblock,
             this.mnuCloseProcess,
             this.mnuSearch,
-            this.mnuCopyRemoteAddress});
+            this.mnuCopyRemoteAddress,
+            new System.Windows.Forms.ToolStripSeparator(),
+            new System.Windows.Forms.ToolStripMenuItem("⬇ Eksportuj do CSV (Ctrl+S)", null, (s, e) => ExportConnectionsToCsv())});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
             resources.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
             this.contextMenuStrip1.Opening += new System.ComponentModel.CancelEventHandler(this.contextMenuStrip1_Opening);
