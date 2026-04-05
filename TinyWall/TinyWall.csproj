@@ -1,7 +1,162 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <!-- MIGRACJA .NET 8: Multi-targeting — buduje dla obu platform -->
+    <!-- net48 = Windows 7+, net8.0-windows = Windows 10+ z nowoczesnymi API -->
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>12.0</LangVersion>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <NeutralLanguage>en</NeutralLanguage>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <RootNamespace>pylorak.TinyWall</RootNamespace>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!-- .NET 8: ImplicitUsings i nowoczesne funkcje -->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Ustawienia specyficzne dla .NET 4.8 -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <TargetPlatformVersion>8.0</TargetPlatformVersion>
+    <DefineConstants>NET48</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Ustawienia specyficzne dla .NET 8 -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <DefineConstants>NET8_0_OR_GREATER</DefineConstants>
+    <!-- Self-contained opcjonalnie — odkomentuj dla standalone exe -->
+    <!-- <SelfContained>true</SelfContained> -->
+    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Product>TinyWall</Product>
+    <AssemblyTitle>TinyWall</AssemblyTitle>
+    <Company>Károly Pados</Company>
+    <Description>A free, lightweight and non-intrusive firewall.</Description>
+    <Copyright>Copyright © 2011 Károly Pados</Copyright>
+    <Version>3.5.0</Version>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Resources\img\firewall.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <!-- Referencje tylko dla .NET 4.8 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Configuration.Install" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Windows.Forms" />
+    <!-- WinRT access — potrzebne tylko w .NET 4.8 -->
+    <Reference Include="Windows.Management" />
+    <Reference Include="Windows.ApplicationModel" />
+    <Reference Include="System.Runtime" />
+  </ItemGroup>
+
+  <!-- Referencje dla .NET 8 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <!-- W .NET 8 System.Management jest NuGet package -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../pylorak.Utilities/*.cs" LinkBase="pylorak.Utilities" />
+    <Compile Include="../pylorak.Windows/*.cs" LinkBase="pylorak.Windows" />
+    <Compile Include="../pylorak.Windows/NetStat/*.cs" LinkBase="pylorak.Windows.NetStat" />
+    <Compile Include="../pylorak.Windows/TaskDialog/*.cs" LinkBase="pylorak.Windows.TaskDialog" />
+    <Compile Include="../pylorak.Windows.Services/*.cs" LinkBase="pylorak.Windows.Services" />
+    <Compile Include="../pylorak.Windows.WFP/*.cs" LinkBase="pylorak.Windows.WFP" />
+
+    <PackageReference Include="Nullable" Version="1.3.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+
+    <!-- COM references — tylko .NET 4.8 -->
+    <COMReference Include="NetFwTypeLib" Condition="'$(TargetFramework)' == 'net48'">
+      <WrapperTool>tlbimp</WrapperTool>
+      <VersionMinor>0</VersionMinor>
+      <VersionMajor>1</VersionMajor>
+      <Guid>58fbcf7c-e7a9-467c-80b3-fc65e8fcca08</Guid>
+      <Lcid>0</Lcid>
+      <Isolated>false</Isolated>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </COMReference>
+
+    <COMReference Include="TaskScheduler" Condition="'$(TargetFramework)' == 'net48'">
+      <WrapperTool>tlbimp</WrapperTool>
+      <VersionMinor>0</VersionMinor>
+      <VersionMajor>1</VersionMajor>
+      <Guid>e34cb9f1-c7f7-424c-be29-027dcc09363a</Guid>
+      <Lcid>0</Lcid>
+      <Isolated>false</Isolated>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </COMReference>
+
+    <EmbeddedResource Update="Resources\Exceptions.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Exceptions.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Icons.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Icons.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Messages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
+      <LastGenOutput>Messages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+
+    <Compile Update="Resources\Exceptions.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Exceptions.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Icons.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Icons.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Messages.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Messages.resx</DependentUpon>
+    </Compile>
+
+    <Compile Update="AppFinderForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="ApplicationExceptionForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="ConnectionsForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="DevelToolForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="PasswordForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="Services.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="Processes.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="SettingsForm.cs"><SubType>Form</SubType></Compile>
+    <Compile Update="UwpPackagesForm.cs"><SubType>Form</SubType></Compile>
+
+    <Compile Update="AppFinderForm.Designer.cs"><DependentUpon>AppFinderForm.cs</DependentUpon></Compile>
+    <Compile Update="ApplicationExceptionForm.Designer.cs"><DependentUpon>ApplicationExceptionForm.cs</DependentUpon></Compile>
+    <Compile Update="ConnectionsForm.Designer.cs"><DependentUpon>ConnectionsForm.cs</DependentUpon></Compile>
+    <Compile Update="DevelToolForm.Designer.cs"><DependentUpon>DevelToolForm.cs</DependentUpon></Compile>
+    <Compile Update="PasswordForm.Designer.cs"><DependentUpon>PasswordForm.cs</DependentUpon></Compile>
+    <Compile Update="Services.Designer.cs"><DependentUpon>Services.cs</DependentUpon></Compile>
+    <Compile Update="Processes.Designer.cs"><DependentUpon>Processes.cs</DependentUpon></Compile>
+    <Compile Update="SettingsForm.Designer.cs"><DependentUpon>SettingsForm.cs</DependentUpon></Compile>
+    <Compile Update="UwpPackagesForm.Designer.cs"><DependentUpon>UwpPackagesForm.cs</DependentUpon></Compile>
+  </ItemGroup>
+</Project>
+
     <LangVersion>9.0</LangVersion>
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>

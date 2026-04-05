@@ -49,6 +49,8 @@ namespace pylorak.TinyWall
             nameof(mnuLogViewer),
             nameof(mnuTrafficStats),
             nameof(mnuSecurityProfile),
+            nameof(mnuGeoIpBlocker),
+            nameof(mnuNetworkChart),
             nameof(toolStripMenuItemExtra)
         )]
         private void InitializeComponent()
@@ -82,6 +84,8 @@ namespace pylorak.TinyWall
             this.mnuLogViewer = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuTrafficStats = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuSecurityProfile = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuGeoIpBlocker = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuNetworkChart = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemExtra = new System.Windows.Forms.ToolStripSeparator();
             this.TrayMenu.SuspendLayout();
             // 
@@ -113,7 +117,9 @@ namespace pylorak.TinyWall
             this.toolStripMenuItem5,
             this.mnuLogViewer,
             this.mnuTrafficStats,
+            this.mnuNetworkChart,
             this.mnuSecurityProfile,
+            this.mnuGeoIpBlocker,
             this.toolStripMenuItemExtra,
             this.mnuQuit});
             this.TrayMenu.Name = "TrayMenu";
@@ -279,6 +285,18 @@ namespace pylorak.TinyWall
             this.mnuSecurityProfile.Image = global::pylorak.TinyWall.Resources.Icons.firewall;
             this.mnuSecurityProfile.Click += new System.EventHandler(this.mnuSecurityProfile_Click);
 
+            // mnuGeoIpBlocker
+            this.mnuGeoIpBlocker.Name = "mnuGeoIpBlocker";
+            this.mnuGeoIpBlocker.Text = "🌍 Blokowanie GeoIP";
+            this.mnuGeoIpBlocker.Image = global::pylorak.TinyWall.Resources.Icons.firewall;
+            this.mnuGeoIpBlocker.Click += new System.EventHandler(this.mnuGeoIpBlocker_Click);
+
+            // mnuNetworkChart
+            this.mnuNetworkChart.Name = "mnuNetworkChart";
+            this.mnuNetworkChart.Text = "📈 Wykres ruchu sieciowego";
+            this.mnuNetworkChart.Image = global::pylorak.TinyWall.Resources.Icons.info;
+            this.mnuNetworkChart.Click += new System.EventHandler(this.mnuNetworkChart_Click);
+
             // toolStripMenuItemExtra (separator przed Quit)
             this.toolStripMenuItemExtra.Name = "toolStripMenuItemExtra";
 
@@ -303,6 +321,8 @@ namespace pylorak.TinyWall
         private System.Windows.Forms.ToolStripMenuItem mnuLogViewer;
         private System.Windows.Forms.ToolStripMenuItem mnuTrafficStats;
         private System.Windows.Forms.ToolStripMenuItem mnuSecurityProfile;
+        private System.Windows.Forms.ToolStripMenuItem mnuGeoIpBlocker;
+        private System.Windows.Forms.ToolStripMenuItem mnuNetworkChart;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItemExtra;
         private System.Windows.Forms.ToolStripMenuItem mnuLock;
         private System.Windows.Forms.ToolStripMenuItem mnuElevate;
@@ -1336,21 +1356,22 @@ namespace pylorak.TinyWall
             }
         }
 
-        private void mnuSecurityProfile_Click(object sender, EventArgs e)
+        private void mnuGeoIpBlocker_Click(object sender, EventArgs e)
         {
-            if (FlashIfOpen(typeof(SecurityProfileForm)))
+            if (FlashIfOpen(typeof(GeoIpBlockerForm)))
                 return;
+            using var f = new GeoIpBlockerForm();
+            try { ActiveForms.Add(f); f.ShowDialog(); }
+            finally { ActiveForms.Remove(f); }
+        }
 
-            using var spf = new SecurityProfileForm(this);
-            try
-            {
-                ActiveForms.Add(spf);
-                spf.ShowDialog();
-            }
-            finally
-            {
-                ActiveForms.Remove(spf);
-            }
+        private void mnuNetworkChart_Click(object sender, EventArgs e)
+        {
+            if (FlashIfOpen(typeof(NetworkTrafficChartForm)))
+                return;
+            using var f = new NetworkTrafficChartForm();
+            try { ActiveForms.Add(f); f.ShowDialog(); }
+            finally { ActiveForms.Remove(f); }
         }
 
         private void Tray_MouseClick(object sender, MouseEventArgs e)
